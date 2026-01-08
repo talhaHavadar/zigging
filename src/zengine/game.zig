@@ -17,12 +17,15 @@ pub const Options = struct {
 allocator: Allocator,
 options: Options = .{},
 prng: std.Random.Xoroshiro128,
-game_objects: std.array_hash_map.StringArrayHashMapUnmanaged(GameObject),
+object_buckets: [GameObject.Priority.count]std.ArrayListUnmanaged(*GameObject),
+id_object_map: std.AutoHashMapUnmanaged(@FieldType(GameObject, "id"), struct {
+    bucket: u4,
+    index: usize,
+}),
 
 pub fn init(alloc: Allocator, o: Options) Game {
     rl.initWindow(o.windowWidth, o.windowHeight, o.title);
     rl.setExitKey(.null);
-
     var seed: u64 = undefined;
     if (o.randomSeed == null) {
         std.posix.getrandom(std.mem.asBytes(&seed)) catch {
@@ -38,13 +41,34 @@ pub fn init(alloc: Allocator, o: Options) Game {
         .allocator = alloc,
         .options = o,
         .prng = prng,
-        .game_objects = .empty,
+        .object_buckets = .{std.ArrayListUnmanaged(*GameObject).empty} ** GameObject.Priority.count,
+        .id_object_map = .empty,
     };
 }
 
 pub fn deinit(self: *Game) void {
+    for (&self.object_buckets) |*bucket| {
+        for (bucket.items) |go| {
+            go.deinit(self.allocator);
+        }
+        bucket.deinit(self.allocator);
+    }
+    self.id_object_map.deinit(self.allocator);
     rl.closeWindow();
-    self.game_objects.deinit(self.allocator);
+}
+
+pub fn spawn(self: *Game, go: *GameObject) !void {
+    const bucket = @intFromEnum(go.flags.priority);
+    const index = self.object_buckets[bucket].items.len;
+    try self.object_buckets[bucket].append(self.allocator, go);
+    try self.id_object_map.put(
+        self.allocator,
+        go.id,
+        .{
+            .index = index,
+            .bucket = bucket,
+        },
+    );
 }
 
 pub fn run(self: Game) !void {
@@ -60,9 +84,10 @@ pub fn run(self: Game) !void {
 }
 
 fn update(self: Game) !void {
-    // TODO: update game objects, entities
-    for (self.game_objects.values()) |*go| {
-        try go.update(rl.getFrameTime());
+    for (self.object_buckets) |bucket| {
+        for (bucket.items) |go| {
+            try go.update(rl.getFrameTime());
+        }
     }
 }
 

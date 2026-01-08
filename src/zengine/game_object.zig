@@ -17,12 +17,11 @@ const Allocator = std.mem.Allocator;
 const GameObject = @This();
 
 pub const Priority = enum(u4) {
-    critical = 0xF,
-    high = 0xA,
-    usual = 0x6,
-    low = 0x3,
-    ui = 0x0,
-
+    ui = 0,
+    low,
+    usual,
+    high,
+    critical,
     pub const count = std.meta.fields(Priority).len;
 };
 
@@ -32,16 +31,16 @@ flags: packed struct(u32) {
     is_enabled: bool = true,
     is_visible: bool = true,
     _reserved: u26 = 0,
-},
+} = .{},
 vtable: *const VTable,
 
 pub const VTable = struct {
     update: *const fn (game_object: *GameObject, delta_time: f32) anyerror!void = defaultUpdate,
+    deinit: *const fn (game_object: *GameObject, allocator: Allocator) void,
 };
 
-pub fn deinit(self: GameObject, allocator: Allocator) void {
-    _ = self;
-    _ = allocator;
+pub fn deinit(self: *GameObject, allocator: Allocator) void {
+    self.vtable.deinit(self, allocator);
 }
 
 pub fn defaultUpdate(self: *GameObject, delta_time: f32) anyerror!void {
