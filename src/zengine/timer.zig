@@ -4,8 +4,8 @@ const Timer = @This();
 
 game_object: GameObject,
 
-pub fn init(name: []const u8) Timer {
-    return .{ .game_object = .{ .name = name, .vtable = &vtable } };
+pub fn init(id: u32) Timer {
+    return .{ .game_object = .{ .id = id, .vtable = &vtable } };
 }
 const vtable: GameObject.VTable = .{
     .update = update,
