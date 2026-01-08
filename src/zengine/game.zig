@@ -1,9 +1,11 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const Allocator = std.mem.Allocator;
 const log = std.log.scoped(.zengine_game);
 const rl = @import("raylib");
 
 const Game = @This();
+
 pub const Options = struct {
     windowWidth: i32 = 800,
     windowHeight: i32 = 450,
@@ -12,11 +14,12 @@ pub const Options = struct {
     randomSeed: ?u64 = null,
 };
 
+allocator: Allocator,
 options: Options = .{},
 prng: std.Random.Xoroshiro128,
-scenes: std.array_hash_map.StringArrayHashMapUnmanaged(Scene),
+game_objects: std.array_hash_map.StringArrayHashMapUnmanaged(GameObject),
 
-pub fn init(o: Options) Game {
+pub fn init(alloc: Allocator, o: Options) Game {
     rl.initWindow(o.windowWidth, o.windowHeight, o.title);
     rl.setExitKey(.null);
 
@@ -31,17 +34,22 @@ pub fn init(o: Options) Game {
     }
     const prng = std.Random.Xoroshiro128.init(seed);
 
-    return Game{ .options = o, .prng = prng, .scenes = .empty };
+    return Game{
+        .allocator = alloc,
+        .options = o,
+        .prng = prng,
+        .game_objects = .empty,
+    };
 }
 
-pub fn deinit(self: Game) void {
-    _ = self;
+pub fn deinit(self: *Game) void {
     rl.closeWindow();
+    self.game_objects.deinit(self.allocator);
 }
 
-pub fn run(self: Game) void {
+pub fn run(self: Game) !void {
     while (!rl.windowShouldClose()) { // Detect window close button
-        self.update();
+        try self.update();
 
         rl.beginDrawing();
         defer rl.endDrawing();
@@ -51,9 +59,11 @@ pub fn run(self: Game) void {
     }
 }
 
-fn update(self: Game) void {
-    _ = self;
+fn update(self: Game) !void {
     // TODO: update game objects, entities
+    for (self.game_objects.values()) |*go| {
+        try go.update(rl.getFrameTime());
+    }
 }
 
 fn draw(self: Game) void {
@@ -67,4 +77,4 @@ fn drawUI(self: Game) void {
     // TODO: draw UI components
 }
 
-const Scene = @import("scene.zig");
+const GameObject = @import("game_object.zig");

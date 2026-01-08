@@ -2,8 +2,8 @@ const Scene = @This();
 
 game_object: GameObject,
 
-pub fn init(id: u64, name: []const u8) Scene {
-    return .{ .game_object = .{ .id = id, .name = name, .vtable = &vtable } };
+pub fn init(name: []const u8) Scene {
+    return .{ .game_object = .{ .name = name, .vtable = &vtable } };
 }
 const vtable: GameObject.VTable = .{};
 

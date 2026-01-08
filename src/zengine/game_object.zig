@@ -4,8 +4,7 @@ const Allocator = std.mem.Allocator;
 
 const GameObject = @This();
 
-id: u64,
-name: ?[]const u8 = null,
+name: []const u8,
 vtable: *const VTable,
 
 pub const VTable = struct {
@@ -18,8 +17,8 @@ pub fn deinit(self: GameObject, allocator: Allocator) void {
 
 pub fn defaultUpdate(self: *GameObject, delta_time: f32) anyerror!void {
     log.debug(
-        "defaultUpdate(delta_time:{}) for {d}[name:{?s}] called, doing nothing..",
-        .{ delta_time, self.id, self.name },
+        "defaultUpdate(delta_time:{}) for GameObject[name:{s}] called, doing nothing..",
+        .{ delta_time, self.name },
     );
 }
 
