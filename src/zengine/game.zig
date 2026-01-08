@@ -1,20 +1,36 @@
+const std = @import("std");
+const assert = std.debug.assert;
+const log = std.log.scoped(.zengine_game);
 const rl = @import("raylib");
 
 const Game = @This();
 pub const Options = struct {
-    windowWidth: u64 = 800,
-    windowHeight: u64 = 450,
+    windowWidth: i32 = 800,
+    windowHeight: i32 = 450,
     title: [:0]const u8 = "Zigging right now..",
     windowBackground: rl.Color = .white,
+    randomSeed: ?u64 = null,
 };
 
 options: Options = .{},
+prng: std.Random.Xoroshiro128,
 
-pub fn init(comptime o: Options) Game {
+pub fn init(o: Options) Game {
     rl.initWindow(o.windowWidth, o.windowHeight, o.title);
     rl.setExitKey(.null);
 
-    return Game{ .options = o };
+    var seed: u64 = undefined;
+    if (o.randomSeed == null) {
+        std.posix.getrandom(std.mem.asBytes(&seed)) catch {
+            log.err("not able to create seed for prng!", .{});
+            unreachable;
+        };
+    } else {
+        seed = o.randomSeed.?;
+    }
+    const prng = std.Random.Xoroshiro128.init(seed);
+
+    return Game{ .options = o, .prng = prng };
 }
 
 pub fn deinit(self: Game) void {

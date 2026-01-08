@@ -15,4 +15,4 @@ test {
     std.testing.refAllDecls(@This());
 }
 
-const Game = @import("game.zig");
+const Game = @import("zengine/game.zig");
