@@ -12,6 +12,9 @@ pub fn main() !void {
     });
     defer game.deinit();
 
+    var timer = try Timer.init(166);
+    try game.spawn(&timer.game_object);
+
     try game.run();
 }
 
@@ -20,3 +23,4 @@ test {
 }
 
 const Game = @import("zengine/game.zig");
+const Timer = @import("zengine/timer.zig");
